@@ -40,7 +40,7 @@ PYYAML_MACOS_WHEEL_SHA256='44edc647873928551a01e7a563d7452ccdebee747728c1080d881
 
 PHOTON_SETUP_URL='https://photon.codes'
 
-FREEKLAW_RELEASE_TAG='v0.1.0-alpha.1'
+FREEKLAW_RELEASE_TAG='v0.1.0-alpha.2'
 # Immutable commit containing the released skill documents.
-FREEKLAW_RELEASE_COMMIT='7baae37803d86f8b67303aa3089e14b43b38b371'
+FREEKLAW_RELEASE_COMMIT='c4ebaf56848805546dfac30ed2019fbb2e9409ad'
 FREEKLAW_RAW_REPOSITORY_URL='https://raw.githubusercontent.com/Jacky040124/freeklaw'
