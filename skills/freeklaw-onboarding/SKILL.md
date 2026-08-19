@@ -21,7 +21,7 @@ Use this skill when the user asks to configure Freeklaw, change application deta
 
 - Prefer a local Hermes session for onboarding. If this skill was opened through iMessage or another gateway, explain that the interview contains personal information and offer to continue locally.
 - Store profile data only in `~/.freeklaw/profile.yaml`. Never put credentials, API keys, passwords, page captures, or chat transcripts there.
-- Never ask the user to paste a password or API key into chat. For a site credential, tell the user to run `agent-vault set <key>` themselves in a local terminal.
+- Never ask the user to paste a password or API key into chat. For a site credential, tell the user to run `"$HOME/.freeklaw/runtime/npm/bin/agent-vault" set <key>` themselves in a local terminal.
 - Do not edit Hermes configuration, model selection, profiles, gateway settings, or conversation behavior.
 - Do not start a job application from this skill. Finish onboarding, then let the ordinary `freeklaw` skill handle links.
 
@@ -33,7 +33,7 @@ Run these checks without changing the machine:
 test -x "$HOME/.freeklaw/bin/freeklaw-state"
 command -v hermes
 command -v ego-browser
-command -v agent-vault
+test -x "$HOME/.freeklaw/runtime/npm/bin/agent-vault"
 ```
 
 If a check fails, stop and direct the user to rerun Freeklaw's tagged-release `./install.sh`. Do not improvise dependency installation from the skill.

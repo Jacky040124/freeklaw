@@ -87,7 +87,7 @@ If the result is skipped or the user takes control unexpectedly, stop. Never ret
 - Fill a field only when its value is directly supported by the profile or a fresh user answer.
 - When asking a question, identify the employer, field, available choices, and why the profile is insufficient. Checkpoint `waiting_user` first.
 - Offer to save a reusable answer only after the user confirms it. Use the onboarding skill to update the profile safely.
-- The user creates new agent-vault entries locally with `agent-vault set`; never collect the secret in chat.
+- The user creates new agent-vault entries locally with `"$HOME/.freeklaw/runtime/npm/bin/agent-vault" set <key>`; never collect the secret in chat.
 - Read credential authority from the active run. `human_handoff` always hands the browser to the user. `approve_each_fill` still requires explicit approval naming the employer, account, and field immediately before each fill.
 - After that approval, fill an existing vault entry only through the exact helper form below. Never reveal, print, interpolate, or place the secret in model-authored browser code.
 

@@ -247,7 +247,7 @@ say ''
 if [ "$EGO_NEEDS_ONBOARDING" = true ] || [ ! -x "$EGO_BROWSER_BIN" ]; then say 'Freeklaw installation is not complete: ego lite GUI onboarding and launcher smoke check remain.'; say "  1. Open '$APPLICATIONS_DIR/ego lite.app' and finish official onboarding: $EGO_LITE_DOWNLOAD_PAGE"; say '  2. Re-run: ./install.sh --check'; exit 2; fi
 say 'Freeklaw dependency installation is complete and canonical command paths were verified.'
 say 'Next, complete the user-controlled setup (the installer never reads or stores secrets):'
-say '  1. In your own terminal, run: agent-vault init'
+say "  1. In your own terminal, run: \"$AGENT_VAULT_BIN\" init"
 say "  2. Create your Photon project at $PHOTON_SETUP_URL"
 say '  3. In your own terminal, run: hermes photon setup --phone YOUR_PHONE_NUMBER'
 say '  4. If needed, run hermes gateway install, then hermes gateway start.'
