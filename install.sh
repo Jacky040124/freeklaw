@@ -229,7 +229,7 @@ install_local_helpers() {
 }
 install_instruction_skills() {
     [ -x "$HERMES_BIN" ] || die 'Canonical Hermes launcher is unavailable after installation.'
-    for skill_name in freeklaw freeklaw-onboarding; do skill_url=$FREEKLAW_SKILL_BASE_URL/$skill_name/SKILL.md; "$HERMES_BIN" skills inspect "$skill_url"; "$HERMES_BIN" skills install "$skill_url" --name "$skill_name" --yes; done
+    for skill_name in ego-browser freeklaw freeklaw-onboarding; do skill_url=$FREEKLAW_SKILL_BASE_URL/$skill_name/SKILL.md; "$HERMES_BIN" skills inspect "$skill_url"; "$HERMES_BIN" skills install "$skill_url" --name "$skill_name" --yes; done
     say "Installed scanned Freeklaw skills from commit $FREEKLAW_RELEASE_COMMIT (display tag $FREEKLAW_RELEASE_TAG)."
 }
 record_command_paths() { temp=$(mktemp "$RUNTIME_DIR/.command-paths.XXXXXX"); { printf 'HERMES\t%s\n' "$HERMES_BIN"; printf 'AGENT_VAULT\t%s\n' "$AGENT_VAULT_BIN"; printf 'EGO_BROWSER\t%s\n' "$EGO_BROWSER_BIN"; } > "$temp"; chmod 600 "$temp"; mv -f "$temp" "$PROVENANCE_FILE"; }

@@ -21,7 +21,7 @@ Use this skill when the user asks to configure Freeklaw, change application deta
 
 - Prefer a local Hermes session for onboarding. If this skill was opened through iMessage or another gateway, explain that the interview contains personal information and offer to continue locally.
 - Store profile data only in `~/.freeklaw/profile.yaml`. Never put credentials, API keys, passwords, page captures, or chat transcripts there.
-- Never ask the user to paste a password or API key into chat. For a site credential, tell the user to run `"$HOME/.freeklaw/runtime/npm/bin/agent-vault" set <key>` themselves in a local terminal.
+- Never ask the user to paste a password or API key into chat. For a site credential, tell the user to run `"$HOME/.freeklaw/runtime/npm/bin/agent-vault" set <key>` themselves in a local terminal. If the user nevertheless chooses to send a password in chat, store it immediately with `"$HOME/.freeklaw/runtime/npm/bin/agent-vault" set <key> --stdin`, never repeat or reference its value, and remind them it remains in the transcript.
 - Do not edit Hermes configuration, model selection, profiles, gateway settings, or conversation behavior.
 - Do not start a job application from this skill. Finish onboarding, then let the ordinary `freeklaw` skill handle links.
 
@@ -48,13 +48,16 @@ Ask only for missing or requested information. Keep the conversation natural rat
 - reusable, user-confirmed application answers;
 - the absolute path to an existing resume PDF;
 - submission mode: `approve_each` or `auto_submit`.
-- credential use: `human_handoff` or `approve_each_fill`.
+- credential use: `human_handoff`, `approve_each_fill`, or `auto_fill`.
+- account creation: whether the agent may create applicant accounts automatically (`auto_create_accounts`, default false).
 
 Never infer a factual answer. It is fine to leave an optional field absent.
 
 `approve_each` is the submission default. Before accepting `auto_submit`, clearly explain that arbitrary job pages are untrusted and that Freeklaw's current local setup is experimental rather than hardened. Record its `experimental_warning_ack: true` only after the user explicitly accepts that risk.
 
-`human_handoff` is the credential default: the user types or approves the login in the handed-off browser. `approve_each_fill` allows the vault bridge only after the user approves each specific fill. It requires a separate explicit acknowledgement that a shell-capable agent and browser processing an untrusted page do not provide a hardened credential sandbox. Never treat the submission acknowledgement as credential-use consent.
+`human_handoff` is the credential default: the user types or approves the login in the handed-off browser. `approve_each_fill` allows the vault bridge only after the user approves each specific fill. `auto_fill` allows the vault bridge without per-fill approval for logins on the employer's own application flow; it is the broadest and least supervised mode. Both non-default modes require a separate explicit acknowledgement that a shell-capable agent and browser processing an untrusted page do not provide a hardened credential sandbox. Never treat the submission acknowledgement as credential-use consent.
+
+`auto_create_accounts: false` is the account-creation default: the agent asks before registering any applicant account. Setting it to `true` lets the agent register accounts with profile data without asking each time; the installed secret helper generates each new password directly into the vault, so the agent never sees it. This choice also requires the credential-use acknowledgement. Explain the trade-off before recording `true`.
 
 ## Save and verify
 
@@ -77,6 +80,7 @@ consent:
 credential_use:
   mode: human_handoff
   experimental_warning_ack: false
+  auto_create_accounts: false
 ```
 
 Give the temporary file owner-only permissions, then validate and save it atomically through the installed helper. Use `--root` only in tests; normal use relies on `~/.freeklaw`.

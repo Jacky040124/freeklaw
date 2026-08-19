@@ -17,9 +17,11 @@ import fcntl
 import json
 import os
 import re
+import secrets
 import shutil
 import signal
 import stat
+import string
 import subprocess
 import sys
 import tempfile
@@ -34,7 +36,16 @@ _SIGNALS = tuple(
     if sig is not None
 )
 _CONFIG_EXIT = 64
+_EXISTS_EXIT = 65
 _INTERNAL_EXIT = 70
+_PASSWORD_LENGTH = 24
+_PASSWORD_SYMBOLS = "!#$%*+-_"
+_PASSWORD_CLASSES = (
+    string.ascii_lowercase,
+    string.ascii_uppercase,
+    string.digits,
+    _PASSWORD_SYMBOLS,
+)
 _GROUP_GRACE_SECONDS = 0.5
 _UNLOCKED_STALE_SECONDS = 60.0
 _HOME = Path.home()
@@ -80,7 +91,23 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--task-space", required=True)
     parser.add_argument("--locator", required=True)
     parser.add_argument("--vault-key", required=True, type=_vault_key)
+    parser.add_argument("--confirm-locator")
+    parser.add_argument("--generate", action="store_true")
     return parser
+
+
+def _generate_password() -> str:
+    """Generate a password satisfying common ATS composition rules."""
+    alphabet = "".join(_PASSWORD_CLASSES)
+    while True:
+        password = "".join(
+            secrets.choice(alphabet) for _ in range(_PASSWORD_LENGTH)
+        )
+        if all(
+            any(character in character_class for character in password)
+            for character_class in _PASSWORD_CLASSES
+        ):
+            return password
 
 
 def _resolve_root(path: Path) -> Path:
@@ -124,12 +151,18 @@ def _runtime_paths() -> tuple[Path, Path, Path]:
     )
 
 
-def _javascript(task_space: str, locator: str, secret_path: str) -> str:
+def _javascript(
+    task_space: str,
+    locator: str,
+    secret_path: str,
+    confirm_locator: str | None = None,
+) -> str:
     # json.dumps produces JavaScript-compatible string literals and prevents any
     # caller-controlled value from becoming executable source.
     return f"""const fs = require("node:fs");
 const requestedTaskSpace = {json.dumps(task_space)};
 const requestedLocator = {json.dumps(locator)};
+const requestedConfirmLocator = {json.dumps(confirm_locator)};
 const secretPath = {json.dumps(secret_path)};
 
 const spaces = await listTaskSpaces();
@@ -145,6 +178,9 @@ if (!Number.isInteger(existingId)) throw new Error("task space has no numeric id
 await claimTaskSpace(existingId);
 const secret = fs.readFileSync(secretPath, "utf8");
 await fillInput(requestedLocator, secret);
+if (requestedConfirmLocator !== null) {{
+  await fillInput(requestedConfirmLocator, secret);
+}}
 """
 
 
@@ -309,6 +345,21 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         original_stat = os.fstat(secret_fd)
 
+        if args.generate:
+            stage = "agent-vault-has"
+            if _run(vault_executable, ["has", args.vault_key]) == 0:
+                _error("vault-key-exists", _EXISTS_EXIT)
+                return _EXISTS_EXIT
+            stage = "agent-vault-set"
+            exit_code = _run(
+                vault_executable,
+                ["set", args.vault_key, "--stdin", "--desc", "Created by Freeklaw"],
+                stdin=_generate_password(),
+            )
+            if exit_code != 0:
+                _error(stage, exit_code)
+                return exit_code
+
         stage = "agent-vault"
         placeholder = f"<agent-vault:{args.vault_key}>"
         exit_code = _run(
@@ -331,7 +382,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         exit_code = _run(
             ego_executable,
             ["nodejs"],
-            stdin=_javascript(args.task_space, args.locator, str(secret_path)),
+            stdin=_javascript(
+                args.task_space,
+                args.locator,
+                str(secret_path),
+                args.confirm_locator,
+            ),
         )
         if exit_code != 0:
             _error(stage, exit_code)

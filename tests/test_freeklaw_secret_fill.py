@@ -66,6 +66,15 @@ class SecretFillTests(unittest.TestCase):
         import sys
 
         capture = pathlib.Path(os.environ["CAPTURE_DIR"])
+        command = sys.argv[1]
+        if command == "has":
+            raise SystemExit(int(os.environ.get("VAULT_HAS_EXIT", "5")))
+        if command == "set":
+            (capture / "set.json").write_text(json.dumps({
+                "argv": sys.argv[1:],
+                "password": sys.stdin.read(),
+            }))
+            raise SystemExit(int(os.environ.get("VAULT_SET_EXIT", "0")))
         target = pathlib.Path(sys.argv[2])
         (capture / "vault.json").write_text(json.dumps({
             "argv0": sys.argv[0],
@@ -85,6 +94,13 @@ class SecretFillTests(unittest.TestCase):
         if os.environ.get("VAULT_REPLACE_WITH_SYMLINK"):
             target.unlink()
             target.symlink_to(os.environ["PROTECTED_FILE"])
+            raise SystemExit(0)
+        stored = capture / "set.json"
+        if stored.exists():
+            target.write_text(
+                json.loads(stored.read_text(encoding="utf-8"))["password"],
+                encoding="utf-8",
+            )
             raise SystemExit(0)
         target.write_text(os.environ["TEST_SECRET"], encoding="utf-8")
         print(os.environ["TEST_SECRET"])
@@ -119,6 +135,8 @@ class SecretFillTests(unittest.TestCase):
             "path": str(path),
             "task_space": literal("requestedTaskSpace"),
             "locator": literal("requestedLocator"),
+            "confirm_locator": literal("requestedConfirmLocator"),
+            "secret": secret,
             "mode": path.stat().st_mode & 0o777,
             "secret_was_read": secret == os.environ["TEST_SECRET"],
             "pid": os.getpid(),
@@ -224,6 +242,57 @@ class SecretFillTests(unittest.TestCase):
         self.assertNotIn(SECRET, result.stdout + result.stderr)
         self.assertFalse(Path(str(ego["path"])).exists())
         self.assertEqual(list(self.bridge_root.iterdir()), [])
+
+    def test_generate_stores_strong_password_and_fills_both_locators(self) -> None:
+        result = self._run(
+            "--confirm-locator",
+            "input[name=confirm]",
+            "--generate",
+        )
+
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, '{"ok":true}\n')
+        stored = self._capture("set.json")
+        self.assertEqual(
+            stored["argv"],
+            ["set", "ats-password", "--stdin", "--desc", "Created by Freeklaw"],
+        )
+        password = str(stored["password"])
+        self.assertEqual(len(password), 24)
+        self.assertTrue(any(character.islower() for character in password))
+        self.assertTrue(any(character.isupper() for character in password))
+        self.assertTrue(any(character.isdigit() for character in password))
+        self.assertTrue(any(character in "!#$%*+-_" for character in password))
+        ego = self._capture("ego.json")
+        self.assertEqual(ego["secret"], password)
+        self.assertEqual(ego["confirm_locator"], "input[name=confirm]")
+        self.assertIn(
+            "await fillInput(requestedConfirmLocator, secret)", str(ego["source"])
+        )
+        self.assertNotIn(password, str(ego["source"]))
+        self.assertNotIn(password, result.stdout + result.stderr)
+
+    def test_generate_refuses_to_overwrite_an_existing_vault_key(self) -> None:
+        result = self._run(
+            "--generate",
+            environment=self._environment(VAULT_HAS_EXIT="0"),
+        )
+
+        self.assertEqual(result.returncode, 65)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(
+            result.stderr,
+            '{"ok":false,"stage":"vault-key-exists","exit_code":65}\n',
+        )
+        self.assertFalse((self.capture_dir / "set.json").exists())
+        self.assertFalse((self.capture_dir / "ego.json").exists())
+
+    def test_fill_without_confirm_locator_passes_null(self) -> None:
+        result = self._run()
+
+        self.assertEqual(result.returncode, 0)
+        ego = self._capture("ego.json")
+        self.assertIsNone(ego["confirm_locator"])
 
     def test_path_shadowing_is_ignored(self) -> None:
         shadow = self.root / "shadow"

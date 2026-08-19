@@ -47,8 +47,10 @@ def test_onboarding_template_matches_the_profile_schema(tmp_path: Path) -> None:
     state.validate_profile(profile)
 
 
-def test_application_skill_contains_complete_ego_control_contract() -> None:
-    content = _skill("freeklaw")
+def test_ego_browser_skill_contains_complete_control_contract() -> None:
+    content = _skill("ego-browser")
+    frontmatter = _frontmatter(content)
+    assert frontmatter["name"] == "ego-browser"
     for required in (
         "ego-browser nodejs <<'EOF'",
         "useOrCreateTaskSpace",
@@ -56,12 +58,36 @@ def test_application_skill_contains_complete_ego_control_contract() -> None:
         "snapshotText",
         "handOffTaskSpace",
         "takeOverTaskSpace",
+        "claimTaskSpace",
         "completeTaskSpace",
+        "uploadFile",
+        "fillInput",
+    ):
+        assert required in content
+    # The vendored skill must not point at upstream install files we do not ship.
+    assert "references/install.md" not in content
+    assert "scripts/install.sh" not in content
+    assert "./install.sh" in content
+
+
+def test_application_skill_defers_mechanics_and_keeps_policy_hooks() -> None:
+    content = _skill("freeklaw")
+    assert "ego-browser` skill" in content
+    for required in (
+        "freeklaw-<run-id>",
+        "handOffTaskSpace",
+        "takeOverTaskSpace",
+        "claimTaskSpace",
         "--task-space",
         "--locator",
         "--vault-key",
     ):
         assert required in content
+    # Mechanics belong to the ego-browser skill: no executable browser
+    # code blocks here, only the naming reference and policy hooks.
+    assert "```bash\nego-browser nodejs" not in content
+    assert "openOrReuseTab" not in content
+    assert "snapshotText()" not in content
 
 
 def test_application_authority_can_only_stay_equal_or_decrease() -> None:

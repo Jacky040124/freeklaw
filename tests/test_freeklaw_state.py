@@ -99,8 +99,57 @@ def test_credential_use_defaults_to_handoff_and_fill_requires_warning_ack(
     with pytest.raises(state.StateError, match="approve_each_fill requires"):
         state.validate_profile(approve_without_ack)
     invalid = profile(resume, credential_mode="automatic")
-    with pytest.raises(state.StateError, match="human_handoff or approve_each_fill"):
+    with pytest.raises(
+        state.StateError, match="human_handoff, approve_each_fill, or auto_fill"
+    ):
         state.validate_profile(invalid)
+
+
+def test_auto_fill_and_auto_create_accounts_require_warning_ack(
+    tmp_path: Path,
+) -> None:
+    resume = tmp_path / "resume.pdf"
+    resume.write_bytes(b"%PDF")
+
+    auto_without_ack = profile(resume, credential_mode="auto_fill")
+    with pytest.raises(state.StateError, match="auto_fill requires"):
+        state.validate_profile(auto_without_ack)
+
+    auto = profile(resume, credential_mode="auto_fill", credential_acknowledged=True)
+    assert state.validate_profile(auto)["credential_use"]["mode"] == "auto_fill"
+
+    create_without_ack = profile(resume)
+    create_without_ack["credential_use"]["auto_create_accounts"] = True
+    with pytest.raises(state.StateError, match="auto_create_accounts requires"):
+        state.validate_profile(create_without_ack)
+
+    create = profile(resume, credential_acknowledged=True)
+    create["credential_use"]["auto_create_accounts"] = True
+    validated = state.validate_profile(create)
+    assert validated["credential_use"]["auto_create_accounts"] is True
+
+    non_boolean = profile(resume, credential_acknowledged=True)
+    non_boolean["credential_use"]["auto_create_accounts"] = "yes"
+    with pytest.raises(state.StateError, match="must be a boolean"):
+        state.validate_profile(non_boolean)
+
+
+def test_run_snapshots_auto_create_accounts_from_profile(tmp_path: Path) -> None:
+    resume = tmp_path / "resume.pdf"
+    resume.write_bytes(b"%PDF-1.4\n")
+    root = tmp_path / "state"
+    granted = profile(
+        resume, credential_mode="auto_fill", credential_acknowledged=True
+    )
+    granted["credential_use"]["auto_create_accounts"] = True
+    state.save_profile(root, granted)
+
+    started = state.start_run(root, "https://jobs.example.test/apply/1")
+    assert started["credential_use_mode"] == "auto_fill"
+    assert started["auto_create_accounts"] is True
+    record = state.finish_run(root, "submitted")
+    assert record["credential_use_mode"] == "auto_fill"
+    assert record["auto_create_accounts"] is True
 
 
 def test_profile_save_is_atomic_and_permissions_are_owner_only(
@@ -391,6 +440,7 @@ def test_history_is_minimal_and_read_redacts_non_allowlisted_fields(
         "blocker_category",
         "consent_mode",
         "credential_use_mode",
+        "auto_create_accounts",
         "resume_filename",
     }
     assert "resume.pdf" == record["resume_filename"]

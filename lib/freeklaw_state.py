@@ -41,6 +41,7 @@ RUN_STATUSES = frozenset(
     }
 )
 TERMINAL_STATUSES = frozenset({"submitted", "blocked", "failed", "cancelled"})
+CREDENTIAL_MODES = frozenset({"human_handoff", "approve_each_fill", "auto_fill"})
 FINISH_OUTCOMES = TERMINAL_STATUSES
 PROFILE_FIELDS = frozenset(
     {
@@ -71,6 +72,7 @@ RUN_FIELDS = frozenset(
         "blocker_category",
         "consent_mode",
         "credential_use_mode",
+        "auto_create_accounts",
         "resume_filename",
     }
 )
@@ -86,6 +88,7 @@ HISTORY_FIELDS = (
     "blocker_category",
     "consent_mode",
     "credential_use_mode",
+    "auto_create_accounts",
     "resume_filename",
 )
 PROHIBITED_KEYS = frozenset(
@@ -287,24 +290,38 @@ def validate_profile(profile: Any) -> dict[str, Any]:
     credential_use = profile["credential_use"]
     if not isinstance(credential_use, Mapping):
         raise StateError("credential_use must be a mapping")
-    if set(credential_use) != {"mode", "experimental_warning_ack"}:
+    required_credential_keys = {"mode", "experimental_warning_ack"}
+    allowed_credential_keys = required_credential_keys | {"auto_create_accounts"}
+    if (
+        required_credential_keys - set(credential_use)
+        or set(credential_use) - allowed_credential_keys
+    ):
         raise StateError(
-            "credential_use requires only mode and experimental_warning_ack"
+            "credential_use requires mode and experimental_warning_ack, "
+            "optionally auto_create_accounts"
         )
     credential_mode = credential_use["mode"]
-    if credential_mode not in {"human_handoff", "approve_each_fill"}:
+    if credential_mode not in CREDENTIAL_MODES:
         raise StateError(
-            "credential_use.mode must be human_handoff or approve_each_fill"
+            "credential_use.mode must be human_handoff, approve_each_fill, "
+            "or auto_fill"
         )
     credential_acknowledgement = credential_use["experimental_warning_ack"]
     if not isinstance(credential_acknowledgement, bool):
         raise StateError("credential_use.experimental_warning_ack must be a boolean")
     if (
-        credential_mode == "approve_each_fill"
+        credential_mode in {"approve_each_fill", "auto_fill"}
         and credential_acknowledgement is not True
     ):
         raise StateError(
-            "approve_each_fill requires credential_use.experimental_warning_ack=true"
+            f"{credential_mode} requires credential_use.experimental_warning_ack=true"
+        )
+    auto_create_accounts = credential_use.get("auto_create_accounts", False)
+    if not isinstance(auto_create_accounts, bool):
+        raise StateError("credential_use.auto_create_accounts must be a boolean")
+    if auto_create_accounts and credential_acknowledgement is not True:
+        raise StateError(
+            "auto_create_accounts requires credential_use.experimental_warning_ack=true"
         )
     resume_value = profile["resume_pdf"]
     if not isinstance(resume_value, str):
@@ -406,6 +423,7 @@ def _sanitize_run(run: Any) -> dict[str, Any]:
         raise StateError("current run contains invalid fields")
     run = dict(run)
     run.setdefault("credential_use_mode", "human_handoff")
+    run.setdefault("auto_create_accounts", False)
     required = {
         "schema_version",
         "run_id",
@@ -422,7 +440,8 @@ def _sanitize_run(run: Any) -> dict[str, Any]:
         or run["schema_version"] != 1
         or run["status"] not in RUN_STATUSES
         or run["consent_mode"] not in {"approve_each", "auto_submit"}
-        or run["credential_use_mode"] not in {"human_handoff", "approve_each_fill"}
+        or run["credential_use_mode"] not in CREDENTIAL_MODES
+        or not isinstance(run["auto_create_accounts"], bool)
     ):
         raise StateError("current run is invalid")
     run["run_id"] = _validate_bounded_text(run["run_id"], "run_id", MAX_RUN_ID_LENGTH)
@@ -540,6 +559,9 @@ def start_run(
             "status": "in_progress",
             "consent_mode": profile["consent"]["mode"],
             "credential_use_mode": profile["credential_use"]["mode"],
+            "auto_create_accounts": profile["credential_use"].get(
+                "auto_create_accounts", False
+            ),
             "resume_filename": Path(profile["resume_pdf"]).name,
         }
         if title is not None:
@@ -614,6 +636,7 @@ def _sanitize_history_record(
         raise StateError(f"{location} is not an object")
     record = {field: raw[field] for field in HISTORY_FIELDS if field in raw}
     record.setdefault("credential_use_mode", "human_handoff")
+    record.setdefault("auto_create_accounts", False)
     required = {
         "run_id",
         "job_url",
@@ -641,11 +664,10 @@ def _sanitize_history_record(
     )
     if record["consent_mode"] not in {"approve_each", "auto_submit"}:
         raise StateError(f"{location} has an invalid consent_mode")
-    if record["credential_use_mode"] not in {
-        "human_handoff",
-        "approve_each_fill",
-    }:
+    if record["credential_use_mode"] not in CREDENTIAL_MODES:
         raise StateError(f"{location} has an invalid credential_use_mode")
+    if not isinstance(record["auto_create_accounts"], bool):
+        raise StateError(f"{location} has an invalid auto_create_accounts")
     for field, maximum in (
         ("title", MAX_TITLE_LENGTH),
         ("company", MAX_COMPANY_LENGTH),
