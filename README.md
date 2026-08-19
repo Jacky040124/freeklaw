@@ -74,6 +74,16 @@ The installer uses four upstream components: [Hermes Agent](https://github.com/N
 
 ## Quick start
 
+### Fastest: send this link to your agent
+
+Copy the link below and send it to any capable AI agent on your Mac (Hermes, Claude, Cursor, …). It contains agent-readable instructions to install Freeklaw from the pinned release and hand you off to onboarding:
+
+```text
+https://raw.githubusercontent.com/Jacky040124/freeklaw/v0.1.0-alpha.2/AGENT-INSTALL.md
+```
+
+Or install manually:
+
 ### 1. Download a release
 
 Download a [tagged Freeklaw release](https://github.com/Jacky040124/freeklaw/releases) and inspect it before running anything.
@@ -106,7 +116,7 @@ Start Hermes locally and ask it to set up Freeklaw. The onboarding skill collect
 - **`approve_each`** — the default; pauses immediately before final submission.
 - **`auto_submit`** — opt-in; requires explicit acknowledgement of the experimental security risk.
 
-Credential automation has separate consent. The default is a browser handoff, where you type or approve the login yourself. Optional **`approve_each_fill`** mode requires its own warning acknowledgement and your approval before every vault-backed fill.
+Credential automation has separate consent. The default is a browser handoff, where you type or approve the login yourself. Optional **`approve_each_fill`** requires your approval before every vault-backed fill, and **`auto_fill`** lets the vault bridge fill logins on the employer's application flow without per-fill approval. A separate **`auto_create_accounts`** opt-in lets Freeklaw register applicant accounts automatically — a local helper generates each password directly into agent-vault, so the agent never sees it. Every non-default mode requires its own explicit risk acknowledgement.
 
 After onboarding, send Hermes a job link through its normal conversation surface. With Photon configured, that can be iMessage. You can talk to Hermes normally for status, cancellation, or settings changes; Freeklaw adds no special command language.
 
