@@ -16,7 +16,7 @@ new_case() {
     name=$1; CASE_DIR=$TEST_ROOT/$name; HOME=$CASE_DIR/home; MOCK_BIN=$CASE_DIR/mocks; PREFIX=$HOME/.freeklaw; APPS=$HOME/Applications; FIXTURE_REPO=$CASE_DIR/repo
     mkdir -p "$HOME" "$MOCK_BIN" "$FIXTURE_REPO/lib" "$FIXTURE_REPO/bin" "$FIXTURE_REPO/skills/freeklaw" "$FIXTURE_REPO/skills/freeklaw-onboarding"
     sed \
-        -e "s/FREEKLAW_RELEASE_COMMIT='RELEASE_COMMIT_REQUIRED'/FREEKLAW_RELEASE_COMMIT='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'/" \
+        -e "s/FREEKLAW_RELEASE_COMMIT='[^']*'/FREEKLAW_RELEASE_COMMIT='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'/" \
         -e "s/EGO_LITE_ARM64_DMG_SHA256='[^']*'/EGO_LITE_ARM64_DMG_SHA256='testegohash'/" \
         -e "s/AGENT_VAULT_INTEGRITY='[^']*'/AGENT_VAULT_INTEGRITY='sha512-testSRI'/" \
         -e "s/PYYAML_MACOS_WHEEL_SHA256='[^']*'/PYYAML_MACOS_WHEEL_SHA256='testwheelhash'/" \
@@ -102,8 +102,10 @@ run_installer() {
 snapshot_home() { find "$HOME" -type f -exec /usr/bin/shasum {} \; -o -type l -exec /bin/ls -ld {} \; | sort; }
 
 test_release_guard() {
-    new_case release_guard; before=$(snapshot_home)
-    if env HOME="$HOME" PATH=/usr/bin:/bin FREEKLAW_OS=Darwin FREEKLAW_REPO_ROOT="$ROOT" "$ROOT/install.sh" --check > "$CASE_DIR/out" 2>&1; then fail 'release commit placeholder guard'; return; fi
+    new_case release_guard
+    sed "s/FREEKLAW_RELEASE_COMMIT='[^']*'/FREEKLAW_RELEASE_COMMIT='RELEASE_COMMIT_REQUIRED'/" "$ROOT/compatibility.lock" > "$FIXTURE_REPO/compatibility.lock"
+    before=$(snapshot_home)
+    if env HOME="$HOME" PATH=/usr/bin:/bin FREEKLAW_OS=Darwin FREEKLAW_REPO_ROOT="$FIXTURE_REPO" "$ROOT/install.sh" --check > "$CASE_DIR/out" 2>&1; then fail 'release commit placeholder guard'; return; fi
     after=$(snapshot_home)
     if [ "$before" = "$after" ] && grep -q 'release commit' "$CASE_DIR/out"; then pass 'release commit placeholder fails before writes'; else fail 'release commit placeholder fails before writes'; fi
 }

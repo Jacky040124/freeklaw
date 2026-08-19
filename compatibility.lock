@@ -41,7 +41,6 @@ PYYAML_MACOS_WHEEL_SHA256='44edc647873928551a01e7a563d7452ccdebee747728c1080d881
 PHOTON_SETUP_URL='https://photon.codes'
 
 FREEKLAW_RELEASE_TAG='v0.1.0-alpha.1'
-# Release engineering must replace this with the exact 40-hex commit before
-# publishing. install.sh rejects this placeholder before any machine writes.
-FREEKLAW_RELEASE_COMMIT='RELEASE_COMMIT_REQUIRED'
+# Immutable commit containing the released skill documents.
+FREEKLAW_RELEASE_COMMIT='b5244714d72717b3dde337db11fd91d94aecce68'
 FREEKLAW_RAW_REPOSITORY_URL='https://raw.githubusercontent.com/Jacky040124/freeklaw'
