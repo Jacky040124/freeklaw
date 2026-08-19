@@ -2,6 +2,8 @@
 
 8 Opus researchers, ~86 evidence-backed verdicts against the live Hermes source, live web/API probes, and live tool tests. **Verdict: the plan as written does not survive contact. It needs a scope change, not a patch.**
 
+> **Alpha disposition (2026-08-19):** implementation has started as two Hermes skills plus a thin dependency/setup script. The alpha accepts arbitrary user-supplied sites only on a best-effort basis, uses an existing PDF unchanged, defaults to approve-each, defers discovery and resume tailoring, and targets an always-on Mac mini for acceptance. Auto-submit and automated credential use remain optional experimental features; they are not presented as hardened against malicious page content. This register remains the evidence baseline, not a claim that every risk below has been removed.
+
 ## The five findings that change the plan
 
 **1. Nobody is paying the inference bill — and it's the whole business model.**
@@ -36,7 +38,9 @@ A pure-interactive apply = 25–60 tool calls, each resending the transcript; on
 
 **Biggest security finding (nobody assigned it):** the ego agent inherits the user's **entire Chrome cookie jar** by design, and we point an improvising LLM at arbitrary job postings. A prompt-injected job description has a live authenticated path to the user's email/banking, plus shell access to dump the vault.
 
-## Recommended plan changes
+## Original recommended plan changes
+
+These recommendations record the audit conclusion. The alpha adopts the cost disclosure, always-on positioning, preflight ownership, and security warnings. It deliberately retains the Freeklaw name and permits best-effort attempts beyond Greenhouse; neither choice should be mistaken for risk closure.
 
 1. **Re-scope v1 from "applies to any site" → "assisted apply on 1–2 ATSes"** (Greenhouse first — verified drivable). A funded managed competitor ships exactly two and punts the rest; we can't beat that on a smaller budget with no upload primitive.
 2. **State the inference cost in the README** and default to a cheap model (GLM/Qwen ≈ $0.03–0.43/app vs $2.16 Sonnet).
@@ -44,10 +48,10 @@ A pure-interactive apply = 25–60 tool calls, each resending the transcript; on
 4. **Own preflight entirely**: awake-check, PATH/order enforcement (ego before gateway), `--phone` for photon setup, a rotation-safe setup wrapper, TTY-free vault usage, and a smoke test that proves an iMessage round-trip before declaring success.
 5. **Pick a different name.**
 
-## M0 spike list (things that can kill the project — run these before writing product code)
+## Alpha release evidence still required
 
-1. **One real end-to-end application** on Greenhouse via ego-browser, driven from iMessage, measuring: total tokens/$, wall-clock, API-call count vs the 90 cap.
-2. **Sleep test**: close the lid mid-application, see what actually happens on resume.
-3. **Fresh-machine install rehearsal** (ideally a second Mac / fresh user account): Hermes from git + `photon setup --phone` + ego DMG + skill install — count the un-scriptable human moments.
-4. **Skill-guard test**: try to publish a realistic apply skill and see if `hermes skills install` is even a viable distribution channel.
-5. **Prompt-injection probe**: a job description containing hostile instructions, against the agent with cookie-jar access.
+1. **One real end-to-end application** via ego-browser, driven from iMessage in approve-each mode, measuring total tokens/cost when available, wall-clock time, and iteration count.
+2. **Restart recovery test** on the always-on Mac mini: interrupt the gateway mid-application, inspect the persisted checkpoint and live browser state, and prove final submission is not replayed. Laptop lid-close behavior remains a documented unsupported operating condition rather than the alpha acceptance target.
+3. **Fresh-machine install rehearsal** on a later clean macOS account or machine. The first alpha is accepted on the existing Mac mini, so it cannot close this distribution risk.
+4. **Skill-guard test**: install both published skill documents through Hermes's normal scanner with no bypass.
+5. **Prompt-injection probe**: use a controlled job page containing hostile instructions that request local data, credentials, unrelated navigation, changed consent, and shell execution.

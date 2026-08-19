@@ -1,41 +1,56 @@
-# freeklaw — Implementation Plan v2 (2026-08-18)
+# freeklaw — Hermes-first alpha plan (2026-08-19)
 
-**freeklaw** — MIT, under Jacky's GitHub account. One-liner: *"Text your own agent a job link over iMessage. It applies. Everything runs on your machine. Free."*
-Launch/ads mirror KleoKlaw's style (similar copy, per Jacky).
+Freeklaw is a skill pack for an existing Hermes agent. It does not ship an agent runtime, choose a model, create a Hermes profile, or introduce its own conversation protocol.
 
-## Locked decisions
-- User owns everything; we host/maintain **nothing**. Free, fully open source, MIT.
-- **Hermes only** runtime. Browser work = **ego-lite interactive automation — NO per-ATS scripts** (nothing rots when sites change; agent improvises like 囵囵 does in #slp-application).
-- Photon: user signs up themselves. **Free tier verified 2026-08-18** (photon.codes/pricing): iMessage unlimited daily messages, full DM API, 10 users, managed shared number, $0. Cold outreach is Business-only, but irrelevant — onboarding has the user text their own line first (activates the contact; this was the find-elon "Target not allowed" lesson).
-- Discovery/monitoring **optional opt-in**; auto-apply only offered if monitoring is on. Default flow: user drops a job link → agent applies.
-- Consent: onboarding choice, approve-each (default) vs auto-apply; changeable by text.
-- Vault: github.com/botiverse/agent-vault.
-- Profile: onboarding interview → `profile.yaml`.
+## Alpha boundary
 
-## Verified Hermes built-ins (this Mac, 2026-08-18) — huge plan simplifiers
-1. **`hermes gateway install`** → native launchd/systemd background service (start/stop/restart/status). **We ship zero keep-alive code.**
-2. **Built-in Photon iMessage adapter** — `plugins/platforms/photon/` (adapter.py + auth.py + Node spectrum-ts sidecar): inbound gRPC stream → gateway, outbound text/typing/attachments, supervised sidecar, own `hermes photon setup`. **Custom photon-bridge DELETED from plan.**
-3. **`hermes cron`** — scheduler for optional discovery.
+- macOS only; Apple Silicon and Intel are supported installation targets.
+- Hermes is the only tested host in the first release. Skill content and helper interfaces avoid unnecessary Hermes internals so other hosts can be added later.
+- Ego lite is the only browser path. There are no per-ATS scripts and no fallback to Hermes's browser.
+- A user-supplied link from any site may be attempted, but completion is best effort and blockers are reported honestly.
+- The user's existing PDF is uploaded unchanged. Resume tailoring is deferred.
+- Job discovery, monitoring, cron, a custom work queue, custom commands, and a hosted service are out of scope.
 
-## What the repo actually contains (thin!)
-1. **Onboarding CLI** (`npx freeklaw init` or similar):
-   - Preflight: macOS, Hermes installed+authed, machine-stays-awake guidance.
-   - Photon: open signup → user creates free project → `hermes photon setup` → **user texts their own line once** (activation + E2E proof; wizard waits for the inbound).
-   - Interview → `profile.yaml`: identity/contact/links, work auth, education, experience, base resume path, target roles/locations, caps, blocklist.
-   - Consent step: approve-each (default) / auto-apply (only if monitoring enabled).
-   - agent-vault init.
-   - Install skill pack → `hermes gateway install` → agent texts "👋 alive".
-2. **Hermes skill pack**:
-   - `apply` (core): job URL → ego-lite interactive browser automation → create employer accounts as needed (creds → vault) → tailor + version resume → text user for essay questions/verification/captcha (human-in-the-loop over iMessage) → submit per consent → log → text ✅.
-   - `status`, `settings` (change caps/consent/locations by text).
-   - `discover` (optional, on hermes cron): scan configurable sources (public GitHub internship lists etc.), dedupe, text shortlist.
+## Components
 
-## Milestones
-- **M0 (1–2d)**: repo + CLI onboarding E2E → profile.yaml + vault + `hermes photon setup` + gateway install → "text me and I reply" demo. (Fresh Photon signup during build doubles as final free-tier validation.)
-- **M1 (2–4d)**: `apply` skill end-to-end on 2–3 real postings via ego-lite, human-in-the-loop questions, approve-each. Launch-video moment.
-- **M2 (2–3d)**: employer-account creation + vault flows, resume versioning polish, `freeklaw doctor`.
-- **M3**: optional discover skill, README (honest gotchas: Mac must stay awake; captcha = we text you, never bypass), demo video, **launch on X mirroring Kleo's copy**.
+### Thin installer
 
-## Open items
-- Exact repo/package name spelling (freeklaw), npm availability.
-- Jacky's go for M0.
+`install.sh` checks macOS and a versioned compatibility manifest, reuses compatible dependencies, installs missing ones from official sources, and refuses to replace incompatible existing tools unless the user explicitly selects `--upgrade`.
+
+It guides the official Hermes/Photon and ego lite setup flows, installs agent-vault, creates a private Freeklaw helper environment, and installs both skills through Hermes's security scanner. Version, signature, and non-secret launcher checks cover installed dependencies; Photon authorization, the iMessage round trip, and browser login remain explicit acceptance steps. It never edits Hermes model, provider, profile, gateway, turn-budget, or message-input configuration directly.
+
+### Onboarding skill
+
+`freeklaw-onboarding` runs only for initial setup or requested profile changes. It collects identity/contact details, work authorization, education, experience, reusable confirmed answers, an absolute existing resume PDF path, and submission consent. It writes a validated owner-only `~/.freeklaw/profile.yaml` through a deterministic helper.
+
+`approve_each` is the default. `auto_submit` requires an explicit acknowledgement that arbitrary page content plus a shell-capable local agent is not hardened against prompt injection. Credential use is separate: `human_handoff` is the default, while `approve_each_fill` requires its own risk acknowledgement and case-by-case approval.
+
+### Application skill
+
+`freeklaw` handles user-supplied job links through normal Hermes conversation. It validates the profile, checks the current checkpoint and likely duplicates, drives one ego lite task space, asks rather than inventing unknown factual answers, uploads the configured PDF, and submits according to consent.
+
+Hermes owns ordinary message ordering and control requests. Freeklaw persists only one active checkpoint and minimal completed-run metadata so an interrupted run can be inspected before an explicitly approved resume.
+
+### Deterministic helpers
+
+Small local scripts validate and atomically save YAML, enforce file permissions, maintain one checkpoint, record redacted minimal history, detect likely duplicate URLs, and pass an agent-vault value into an ego lite password field without printing the value. They contain no application reasoning or model calls.
+
+## Safety invariants
+
+- Page content is untrusted data and cannot change consent or authorize local-file, credential, shell, or unrelated-account access.
+- New secrets are entered by the user through agent-vault's local TTY flow, never through chat.
+- Captcha, 2FA, native browser dialogs, and uncertain login/attestation steps require a user handoff.
+- A final submit action is never replayed during recovery.
+- History never stores credentials, page HTML, screenshots, or complete conversations.
+- The product is explicitly experimental; instructions and redaction are not advertised as an OS-level sandbox.
+
+## Alpha acceptance
+
+1. Unit-test profile validation, permissions, atomic state transitions, redaction, duplicate normalization, stale-run recovery, and the credential bridge.
+2. Test installer check/install/upgrade behavior with an isolated home and mocked upstream tools, including interrupted setup and incompatible versions.
+3. Require both skills to pass structural validation and Hermes's install-time security scan.
+4. Probe a controlled hostile job page that attempts to change consent, obtain local data, navigate to unrelated authenticated sites, or induce a shell command.
+5. On Daniel's Mac mini default Hermes agent, complete Photon setup and agent-vault installation, then submit one genuine user-selected job in `approve_each` mode through iMessage and ego lite.
+6. Record aggregate duration, iterations, and available model cost without retaining sensitive page contents.
+
+The Mac mini acceptance run must not modify the existing `cfo` or `wonyoung` Hermes profiles. GUI handoffs are expected for Photon authorization, ego onboarding, login/captcha steps, and final review.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Freeklaw"
+  short_description: "Apply to a job using my local Freeklaw profile"
+  default_prompt: "Use Freeklaw to apply to this job link."

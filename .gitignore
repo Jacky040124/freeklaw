@@ -3,3 +3,7 @@ node_modules/
 .DS_Store
 profile.yaml
 *.log
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/

@@ -1,42 +1,95 @@
 # freeklaw
 
-**Text your own agent a job link. It applies for you. Runs entirely on your Mac.**
+**Text your Hermes agent a job link. It applies from your Mac.**
 
-Open-source, MIT, no hosted service, no subscription, no account with us — because there is no "us" to have an account with. You bring your own agent, your own iMessage line, and your own machine.
+Freeklaw is an open-source, local-first skill pack for job applications. It does not run a hosted service or replace your agent: your existing Hermes installation does the reasoning, Photon carries iMessages, and ego lite drives the browser.
 
-> **Status: pre-alpha, planning stage.** Nothing here installs yet. The design is done and every load-bearing assumption has been verified against real code and live APIs — including the ones that failed. Start with [`docs/RISK-REGISTER.md`](docs/RISK-REGISTER.md); it is the most useful file in the repo.
+> **Status: experimental alpha.** Freeklaw accepts links from any job site on a best-effort basis. Captchas, 2FA, unusual controls, site policy, or unsafe page behavior can stop a run. Auto-submit and automated credential use are not hardened against a malicious page; read the [risk register](docs/RISK-REGISTER.md) before enabling them.
 
-## How it will work
+## What is included
 
-1. Run the freeklaw CLI on your Mac. It interviews you, writes a `profile.yaml`, and wires up your own free [Photon](https://photon.codes) iMessage line.
-2. Text your agent a job link from your phone.
-3. It opens the posting in a real browser, fills the application from your profile, tailors your resume, and texts you when it needs something only you can answer.
-4. It submits — after your approval, or automatically if you turned that on during onboarding.
+- `freeklaw-onboarding`: interviews you locally and writes a private `~/.freeklaw/profile.yaml`.
+- `freeklaw`: uses the profile, your existing resume PDF, and ego lite to complete a job application.
+- `install.sh`: checks or installs the tested dependencies, guides unavoidable GUI setup, and installs both skills through Hermes's scanner.
+- Small local helpers for profile validation, safe checkpoints, minimal history, duplicate detection, and credential-to-browser filling without printing the secret.
 
-Inspired by [KleoKlaw](https://kleoklaw.com), which does this as a managed service. freeklaw is the version where you own everything.
+Freeklaw deliberately does **not** include its own agent runtime, model configuration, message queue, command language, job discovery service, or resume generator.
+
+## Requirements
+
+- macOS on Apple Silicon or Intel
+- A model/provider already usable by Hermes
+- A Photon account and a phone that can activate its assigned iMessage line
+- Brief access to the Mac's GUI for ego lite onboarding, login/captcha handoffs, and approval when needed
+- An existing PDF resume
+
+The installer uses these upstream components:
+
+- [Hermes Agent](https://github.com/NousResearch/hermes-agent)
+- [Photon](https://photon.codes) through Hermes's built-in adapter
+- [ego lite](https://lite.ego.app) as the only browser path
+- [agent-vault](https://github.com/botiverse/agent-vault) for local credential references
+
+## Install
+
+Download a tagged Freeklaw release, inspect it, then run:
+
+```bash
+./install.sh --check
+./install.sh
+```
+
+`--check` is read-only. A normal install reuses compatible dependencies and installs only missing ones. If an existing dependency is outside the tested compatibility set, the installer stops instead of changing it. Review the message and rerun with `--upgrade` only if you want Freeklaw to replace or update that dependency.
+
+The installer never chooses a Hermes model, creates a Hermes profile, or edits Hermes conversation settings. It uses the existing active Hermes profile and official setup flows.
+
+Ego lite requires a one-time GUI onboarding step. Photon setup requires browser authorization and an activation text from your phone. The installer prints the exact next steps at these boundaries; rerun `--check` after completing them.
+
+## Use
+
+Start Hermes locally and ask it to set up Freeklaw. The onboarding skill collects application facts, validates an absolute resume PDF path, and sets submission consent:
+
+- `approve_each` is the default and pauses immediately before final submission.
+- `auto_submit` is opt-in and requires explicit acknowledgement of the experimental security risk.
+
+Credential automation has separate consent. The default is a browser handoff so you type or approve the login yourself. The optional `approve_each_fill` mode requires its own warning acknowledgement and your approval before every vault-backed fill.
+
+After onboarding, send Hermes a job link through its normal conversation surface. With Photon configured, that surface can be iMessage. Talk to Hermes normally if you want status, cancellation, or a settings change; Freeklaw does not add special commands.
+
+The agent never invents factual answers. If the profile does not contain an answer, it asks you and can save the answer only after you confirm.
+
+## Local data
+
+Freeklaw keeps owner-only files under `~/.freeklaw/`:
+
+- the profile;
+- at most one active application checkpoint;
+- minimal outcome history used for status and duplicate warnings.
+
+History excludes credentials, page HTML, screenshots, and full conversations. Employer passwords are not stored in the profile. New secrets are entered by you through agent-vault's local terminal flow.
 
 ## Honest constraints
 
-These come from verification, not guesswork ([details](docs/RISK-REGISTER.md)):
+- **Inference is not free.** Freeklaw's code is free, but your Hermes model/provider may charge for long browser sessions.
+- **The Mac must be available.** A sleeping or logged-out Mac cannot run the agent or browser.
+- **Any-site support is best effort.** Freeklaw reports a blocker instead of claiming universal completion.
+- **Some steps are local.** Captcha, 2FA, browser login approval, and some native dialogs require control of the Mac.
+- **Ego lite is a hard dependency.** It is free but closed-source, and its current download endpoint is not versioned.
+- **This is experimental security software.** A skill prompt and agent-vault are not an operating-system sandbox around a shell-capable agent processing untrusted pages.
+- **You are the operator.** Employer and job-board terms remain yours to follow. Freeklaw never attempts captcha solving or anti-bot evasion.
 
-- **You pay for inference.** Our code is free; the model calls are not. A single interactive application is roughly 1.2M input tokens — about **$2 on a frontier model, or a few cents on a cheap one**. Budget accordingly; freeklaw defaults to a cheap model.
-- **Your Mac has to be awake.** A closed laptop lid stops everything. This works best on a desktop or an always-on machine.
-- **macOS only**, and it depends on a third-party browser tool ([ego lite](https://lite.ego.app), free but closed-source) because the resume-upload step requires it.
-- **Captchas and 2FA need you at the keyboard.** The agent will text you, but some walls can only be cleared in person.
-- **You are the operator.** freeklaw runs on your machine with your accounts. Employer and job-board terms of service are yours to comply with. No captcha-solving or anti-bot evasion will ever ship here.
+## Development
 
-## Stack
+Run the local checks with:
 
-Hermes agent runtime · Photon (iMessage, free tier) · ego lite (browser) · agent-vault (credentials) · `profile.yaml`
+```bash
+uv run --with pytest --with pyyaml pytest -q
+sh tests/test_install.sh
+```
 
-## Docs
+Before publishing a tag, validate both `SKILL.md` files with an Agent Skills validator and run Hermes `skills inspect` against the immutable tagged URLs.
 
-- [`docs/RISK-REGISTER.md`](docs/RISK-REGISTER.md) — verified findings: what works, what's broken, what needs a spike. Read first.
-- [`docs/IMPLEMENTATION-PLAN.md`](docs/IMPLEMENTATION-PLAN.md) — architecture and milestones (predates the register; being revised against it).
-
-## Roadmap to v1
-
-Five spikes stand between this and product code: one real end-to-end Greenhouse application (measuring true cost), a lid-close survival test, a fresh-machine install rehearsal, a skill-distribution test, and a prompt-injection probe. See the register.
+See the [implementation plan](docs/IMPLEMENTATION-PLAN.md) for the alpha boundary and the [risk register](docs/RISK-REGISTER.md) for accepted risks and remaining release evidence.
 
 ## License
 

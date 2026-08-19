@@ -1,0 +1,4 @@
+interface:
+  display_name: "Freeklaw Onboarding"
+  short_description: "Set up or update a Freeklaw job application profile"
+  default_prompt: "Set up my Freeklaw profile."

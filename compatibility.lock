@@ -1,0 +1,47 @@
+# Freeklaw installer compatibility manifest.
+#
+# This file is deliberately POSIX-shell sourceable. Keep values quoted and do
+# not add commands: install.sh treats it as audited release data.
+HERMES_TAG='v2026.8.13'
+HERMES_COMMIT='f80f453ae0679347e38abc917c7f94f717bf96c5'
+# The second commit is the live 0.20.1 checkout verified on the alpha Mac mini.
+# New installs still use the immutable tagged commit above.
+HERMES_COMPATIBLE_COMMITS='f80f453ae0679347e38abc917c7f94f717bf96c5 423f92e607dd51908d23b04758bc0fcd6ec5ff39'
+HERMES_CLI_VERSION='0.20.1'
+HERMES_REPOSITORY_URL='https://github.com/NousResearch/hermes-agent.git'
+HERMES_INSTALLER_URL='https://raw.githubusercontent.com/NousResearch/hermes-agent/f80f453ae0679347e38abc917c7f94f717bf96c5/scripts/install.sh'
+
+# Upstream publishes mutable, architecture-specific DMGs rather than versioned
+# artifacts. install.sh therefore verifies CFBundleShortVersionString after
+# mounting and before copying the application. This is the sole intentionally
+# non-reproducible dependency in this manifest.
+EGO_LITE_VERSION='0.4.6.14'
+EGO_LITE_ARM64_DMG_URL='https://cdn.ego.app/setup/macos/arm64/egolite.dmg'
+EGO_LITE_X86_64_DMG_URL='https://cdn.ego.app/setup/macos/x64/egolite.dmg'
+EGO_LITE_ARM64_DMG_SHA256='12702776b4a244d261e236fb9f333e664fbd734cb0982a99b0ce1d6967c34531'
+EGO_LITE_X86_64_DMG_SHA256='417ecf709abc3b0e7b8c0fa7c65145b87f49fb63ca1765b9bc25327bd44df44a'
+EGO_LITE_BUNDLE_ID='com.citrolabs.ego.lite'
+EGO_BROWSER_BUNDLE_ID='com.citrolabs.ego.ego-browser'
+EGO_DEVELOPER_TEAM_ID='JGQLC6YQYJ'
+EGO_LITE_DOWNLOAD_PAGE='https://lite.ego.app/download'
+
+AGENT_VAULT_PACKAGE='@botiverse/agent-vault'
+AGENT_VAULT_VERSION='0.4.0'
+AGENT_VAULT_INTEGRITY='sha512-D/kVdUtMQwk1C/BcUWxQKvxs0Sjz+kgdmloAlKfRarpf95B6aIeocOYKd2P/NXXEhS18c3YKiV4v9v/2LeHDFA=='
+AGENT_VAULT_TARBALL_URL='https://registry.npmjs.org/@botiverse/agent-vault/-/agent-vault-0.4.0.tgz'
+AGENT_VAULT_REPOSITORY_URL='https://github.com/botiverse/agent-vault'
+AGENT_VAULT_REGISTRY_URL='https://registry.npmjs.org'
+
+PYYAML_VERSION='6.0.3'
+PYYAML_PROJECT_URL='https://pypi.org/project/PyYAML/6.0.3/'
+PYYAML_INDEX_URL='https://pypi.org/simple'
+# Official macOS wheels for CPython 3.11-3.14, including 3.14 free-threaded.
+PYYAML_MACOS_WHEEL_SHA256='44edc647873928551a01e7a563d7452ccdebee747728c1080d881d68af7b997e 652cb6edd41e718550aad172851962662ff2681490a8a711af6a4d288dd96824 7f047e29dcae44602496db43be01ad42fc6f1cc0d8cd6c83d342306c32270196 fc09d0aa354569bc501d4e787133afc08552722d3ab34836a80547331bb5d4a0 8da9669d359f02c0b91ccc01cac4a67f16afec0dac22c2ad09f46bee0697eba8 2283a07e2c21a2aa78d9c4442724ec1eb15f5e42a723b99cb3d822d48f5f7ad1 8d1fab6bb153a416f9aeb4b8763bc0f22a5586065f86f7664fc23339fc1c1fac 34d5fcd24b8445fadc33f9cf348c1047101756fd760b4dacb5c3e99755703310 02893d100e99e03eda1c8fd5c441d8c60103fd175728e23e431db1b589cf5ab3 c1ff362665ae507275af2853520967820d9124984e0f7466736aea23d8611fba'
+
+PHOTON_SETUP_URL='https://photon.codes'
+
+FREEKLAW_RELEASE_TAG='v0.1.0-alpha.1'
+# Release engineering must replace this with the exact 40-hex commit before
+# publishing. install.sh rejects this placeholder before any machine writes.
+FREEKLAW_RELEASE_COMMIT='RELEASE_COMMIT_REQUIRED'
+FREEKLAW_RAW_REPOSITORY_URL='https://raw.githubusercontent.com/Jacky040124/freeklaw'
