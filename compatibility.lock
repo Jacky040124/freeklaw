@@ -42,5 +42,5 @@ PHOTON_SETUP_URL='https://photon.codes'
 
 FREEKLAW_RELEASE_TAG='v0.1.0-alpha.1'
 # Immutable commit containing the released skill documents.
-FREEKLAW_RELEASE_COMMIT='b5244714d72717b3dde337db11fd91d94aecce68'
+FREEKLAW_RELEASE_COMMIT='7baae37803d86f8b67303aa3089e14b43b38b371'
 FREEKLAW_RAW_REPOSITORY_URL='https://raw.githubusercontent.com/Jacky040124/freeklaw'
